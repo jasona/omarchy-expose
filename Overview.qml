@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons // qmllint disable import
+import qs.Ui as Ui // qmllint disable import
 import "IconResolver.js" as IconResolver
 import "WindowModel.js" as WindowModel
 
@@ -13,6 +14,8 @@ Item {
 
     property var shell: null
     property var manifest: null
+    readonly property alias windowBorders: windowBorders
+    WindowBorders { id: windowBorders }
     readonly property string pluginId: String((root.manifest && root.manifest.id) || "expose.window-overview")
     readonly property string pluginDir: String((root.manifest && root.manifest.__sourceDir)
         || (Quickshell.env("HOME") + "/.config/omarchy/plugins/" + root.pluginId))
@@ -252,6 +255,7 @@ Item {
     }
 
     function open(payload) {
+        windowBorders.refresh();
         var blurRestoreInFlight = root.backgroundBlurReleasePhase === 1 && backgroundBlurSession.running;
         if (!blurRestoreInFlight)
             root.backgroundBlurReleasePhase = 0;
@@ -1535,6 +1539,8 @@ Item {
                 root.selectedIndex = index;
         }
         function onRawEvent(event) {
+            if (event && event.name === "configreloaded")
+                windowBorders.refresh();
             if (event && event.name === "custom" && event.data === "expose.window-overview:toggle")
                 root.toggle();
         }
@@ -1891,15 +1897,14 @@ Item {
                     anchors.margins: Style.spacing.sm
                     spacing: Style.spacing.md
 
-                    Rectangle {
+                    Ui.BorderSurface {
                         id: searchBar
                         Layout.alignment: Qt.AlignHCenter
                         Layout.preferredWidth: Math.min(Style.space(760), overviewWindow.width - Style.space(48))
                         Layout.preferredHeight: Style.space(48)
                         radius: Style.cornerRadius
                         color: Color.menu.background
-                        border.color: root.filterText ? Color.menu.selectedText : Color.menu.border
-                        border.width: Math.max(1, Style.normalBorderWidth)
+                        borderSpec: Border.surfaceSpec("menu", "border", Color.foreground, Style.normalBorderWidth)
 
                         RowLayout {
                             anchors.fill: parent
@@ -1932,10 +1937,10 @@ Item {
                                 font.pixelSize: Style.font.bodySmall
                             }
 
-                            Rectangle {
-                                Layout.preferredWidth: Math.max(1, Style.normalBorderWidth)
+                            ThemeDivider {
+                                vertical: true
+                                Layout.preferredWidth: implicitWidth
                                 Layout.preferredHeight: Style.space(24)
-                                color: Color.menu.border
                             }
 
                             Text {
@@ -1951,13 +1956,11 @@ Item {
                                 elide: Text.ElideRight
                             }
 
-                            Rectangle {
+                            ThemedControl {
                                 Layout.preferredWidth: Style.space(34)
                                 Layout.preferredHeight: Style.space(24)
-                                radius: Math.max(2, Style.cornerRadius - Style.spacing.sm)
+                                radius: Math.max(0, Style.cornerRadius - Style.spacing.sm)
                                 color: "transparent"
-                                border.color: Color.menu.border
-                                border.width: Math.max(1, Style.normalBorderWidth)
 
                                 Text {
                                     anchors.centerIn: parent
@@ -2044,8 +2047,7 @@ Item {
                             property bool hovered: false
                             text: "Settings"
                             textFormat: Text.PlainText
-                            color: settingsControl.hovered ? Color.menu.selectedText : Color.menu.text
-                            opacity: settingsControl.hovered ? 1 : 0.7
+                            color: settingsControl.hovered ? Style.hoverStateColor(Color.menu.text, Color.accent) : Color.menu.text
                             font.family: Style.font.menuFamily
                             font.pixelSize: Style.font.bodySmall
                             font.bold: true
