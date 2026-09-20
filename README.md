@@ -16,6 +16,12 @@ macOS-style Exposé for Omarchy: one key or a hot corner shows every open window
 
 Everything is tunable from the built-in Settings panel and over IPC, and changes apply instantly.
 
+## ❤️ Support the project
+
+Enjoying Exposé for Omarchy? Sponsoring its development is a lovely way to say thanks and help keep the project growing.
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor_on_GitHub-%E2%99%A1-ec6cb9?style=for-the-badge)](https://github.com/sponsors/kristofferR)
+
 ## Requirements
 
 - Omarchy Quattro with the native shell plugin system
