@@ -15,9 +15,6 @@ fi
 
 [[ $address =~ ^0x[0-9a-fA-F]+$ ]] || exit 2
 
-# Let the layer-shell surface unmap before taking final compositor focus.
-sleep 0.2
-
 if [[ $move_cursor != "true" ]]; then
   cursor_position=$(hyprctl cursorpos 2>/dev/null || true)
   IFS=',' read -r cursor_x cursor_y <<< "$cursor_position"

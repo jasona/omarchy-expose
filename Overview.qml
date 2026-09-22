@@ -165,7 +165,7 @@ Item {
     property real dragY: 0
     property var dragTarget: null
     property string workspaceMoveMessage: ""
-    property var pendingWorkspaceActivation: null
+    property var pendingActivation: null
     property int selectedIndex: 0
     property int hoveredIndex: -1
     property int previewIndex: -1
@@ -450,9 +450,9 @@ Item {
 
     function finishDismiss() {
         var notifyShell = root.dismissNotifyShell;
-        var activation = root.pendingWorkspaceActivation;
+        var activation = root.pendingActivation;
         root.dismissNotifyShell = false;
-        root.pendingWorkspaceActivation = null;
+        root.pendingActivation = null;
         if (notifyShell && root.shell && typeof root.shell.hide === "function")
             root.shell.hide(root.pluginId);
         if (activation)
@@ -900,10 +900,10 @@ Item {
     }
 
     function activateWorkspace(target) {
-        if (!target || root.draggingTop || moveWindowProcess.running || root.pendingWorkspaceActivation)
+        if (!target || root.draggingTop || moveWindowProcess.running || root.pendingActivation)
             return;
         root.workspaceMoveMessage = "";
-        root.pendingWorkspaceActivation = [root.pluginDir + "/activate-workspace",
+        root.pendingActivation = [root.pluginDir + "/activate-workspace",
             String(target.id), target.name, target.monitorName,
             target.isNew ? "true" : "false"];
         root.dismiss();
@@ -977,16 +977,16 @@ Item {
     }
 
     function activate(top) {
-        if (!top)
+        if (!top || root.pendingActivation)
             return;
         var helper = root.pluginDir + "/activate-window";
-        Quickshell.execDetached([
+        root.pendingActivation = [
             helper,
             WindowModel.addressFor(top),
             WindowModel.appIdFor(top),
             String(top.title || ""),
             root.moveCursorToWindow ? "true" : "false"
-        ]);
+        ];
         root.dismiss();
     }
 
