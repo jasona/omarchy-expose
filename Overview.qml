@@ -144,6 +144,19 @@ Item {
         var value = raw === null || raw === undefined ? NaN : Number(raw);
         return isFinite(value) ? Math.max(0, Math.min(1000, Math.round(value))) : 0;
     }
+    // Which windows the overview starts with. "all" keeps every workspace, as
+    // before; "current" opens on the active workspace and leaves Tab to widen.
+    readonly property string initialWorkspaceScope: {
+        var raw = root.pluginEntry ? root.pluginEntry.initialWorkspaceScope : undefined;
+        return String(raw) === "current" ? "current" : "all";
+    }
+    // How a workspace is named on the cards and in the scope indicator. Plugins
+    // such as per-monitor-workspaces name a workspace "<monitor description>:<slot>",
+    // which is far wider than a card footer; "slot" prints the trailing slot only.
+    readonly property string workspaceLabelStyle: {
+        var raw = root.pluginEntry ? root.pluginEntry.workspaceLabelStyle : undefined;
+        return String(raw) === "slot" ? "slot" : "full";
+    }
     // Reach farther along both screen edges than into the desktop. Fast flings
     // are easier to catch without stealing a large square from the bar below.
     readonly property int hotCornerReach: Style.space(48)
@@ -270,7 +283,7 @@ Item {
             root.backgroundBlurReleasePhase = 0;
         root.closeSettings();
         root.filterText = "";
-        root.workspaceScope = "all";
+        root.workspaceScope = root.initialWorkspaceScope;
         root.dismissNotifyShell = false;
         if (root.surfaceMounted) {
             if (blurRestoreInFlight) {
@@ -670,6 +683,20 @@ Item {
         return next;
     }
 
+    function setInitialWorkspaceScope(value) {
+        var next = String(value) === "current" ? "current" : "all";
+        if (next !== root.initialWorkspaceScope)
+            root.updatePluginSetting("initialWorkspaceScope", next);
+        return next;
+    }
+
+    function setWorkspaceLabelStyle(value) {
+        var next = String(value) === "slot" ? "slot" : "full";
+        if (next !== root.workspaceLabelStyle)
+            root.updatePluginSetting("workspaceLabelStyle", next);
+        return next;
+    }
+
     function setMoveCursorToWindow(enabled) {
         var next = enabled === true;
         if (next !== root.moveCursorToWindow)
@@ -977,8 +1004,12 @@ Item {
         root.sessionAspectRatios = ratios;
     }
 
+    function formatWorkspaceLabel(name) {
+        return WindowModel.formatWorkspaceLabel(name, root.workspaceLabelStyle);
+    }
+
     function workspaceName(top) {
-        return WindowModel.workspaceName(top);
+        return root.formatWorkspaceLabel(WindowModel.workspaceName(top));
     }
 
     function workspaceLabel(top) {
@@ -1009,7 +1040,7 @@ Item {
         var workspace = root.workspaceForScreen(screenName);
         if (!workspace)
             return "—";
-        return String(workspace.name || workspace.id || "—");
+        return root.formatWorkspaceLabel(String(workspace.name || workspace.id || "—"));
     }
 
     function workspaceScopeLabelForScreen(screenName) {

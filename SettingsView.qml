@@ -1040,6 +1040,56 @@ Item {
                                 Layout.preferredHeight: Style.space(48)
                                 Text {
                                     Layout.preferredWidth: Style.space(120)
+                                    text: "Opens with"
+                                    textFormat: Text.PlainText
+                                    color: Color.menu.text
+                                    font.family: Style.font.menuFamily
+                                    font.pixelSize: Style.font.body
+                                }
+                                Item { Layout.fillWidth: true }
+                                SettingChoices {
+                                    id: initialWorkspaceScopeChoices
+                                    value: settingsView.controller.initialWorkspaceScope
+                                    options: [
+                                        { label: "All workspaces", value: "all" },
+                                        { label: "Current", value: "current" }
+                                    ]
+                                    onChosen: function (value) { settingsView.controller.setInitialWorkspaceScope(value); }
+                                }
+                            }
+
+                            SettingsDivider { Layout.fillWidth: true }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Style.space(48)
+                                Text {
+                                    Layout.preferredWidth: Style.space(120)
+                                    text: "Workspace names"
+                                    textFormat: Text.PlainText
+                                    color: Color.menu.text
+                                    font.family: Style.font.menuFamily
+                                    font.pixelSize: Style.font.body
+                                }
+                                Item { Layout.fillWidth: true }
+                                SettingChoices {
+                                    id: workspaceLabelStyleChoices
+                                    value: settingsView.controller.workspaceLabelStyle
+                                    options: [
+                                        { label: "Full", value: "full" },
+                                        { label: "Slot only", value: "slot" }
+                                    ]
+                                    onChosen: function (value) { settingsView.controller.setWorkspaceLabelStyle(value); }
+                                }
+                            }
+
+                            SettingsDivider { Layout.fillWidth: true }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Style.space(48)
+                                Text {
+                                    Layout.preferredWidth: Style.space(120)
                                     text: "Labels"
                                     textFormat: Text.PlainText
                                     color: Color.menu.text
