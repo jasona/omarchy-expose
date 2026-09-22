@@ -9,7 +9,8 @@ macOS-style Exposé for Omarchy: one key or a hot corner shows every open window
 - **Live previews.** Cards are real screencopy views, so videos keep playing and terminals keep scrolling. The Omarchy desktop behind the grid stays live too.
 - **Quick Look.** Space enlarges any preview and restores it again. Shift+Space does it in slow motion, like the classic macOS Easter egg.
 - **Search.** Just start typing to filter windows by title or application.
-- **Workspace scope.** Press Tab to switch between every window and windows on the current workspace. Per-monitor mode evaluates the current workspace of the selected display.
+- **Workspace scope.** Exposé opens with windows on the current workspace. Press Tab to show every window, and Tab again to return to the current workspace. Per-monitor mode evaluates the current workspace of the selected display.
+- **Workspace strip.** See each existing workspace above the window grid. Drag a window onto a workspace tile to move it without leaving Exposé, or onto **New workspace** to create one. Click any tile to switch to that workspace.
 - **Multi-monitor layouts.** The overview opens only on the focused display (or the display whose hot corner was used). Same overview shows every window there; per monitor keeps that display's own windows.
 - **Built for Omarchy.** Runs inside Omarchy Shell, follows the active theme, and adds no packages, services, or daemons.
 - **Hot corner.** Toggle the overview by flinging the pointer into a corner (on by default, any corner, can be disabled).
@@ -82,14 +83,16 @@ Removal leaves nothing behind: Exposé keeps no files outside its plugin directo
 | Any character | Search by title or application |
 | Space | Quick Look the hovered or selected preview (enlarge or restore) |
 | Shift+Space | Quick Look in slow motion |
-| Tab | Toggle all windows or the current workspace |
+| Tab | Toggle between the current workspace and all workspaces |
 | Shift+Q | Close the selected window |
 | Enter | Activate the selected window |
 | Escape | Restore an enlarged preview; press again to close |
 
 Clicking a card activates it; middle-clicking closes it. Activation moves the pointer to the chosen window by default; this is a setting, not a change to Hyprland's global cursor behavior.
 
-The overlay is created on one display only. With **Same overview**, that display shows every window. With **Per monitor**, it shows only windows that already belong to that display; after pressing Tab, the current workspace is the one active on that display.
+Drag a card to a workspace tile at the top to move that window, switch to its destination workspace, and close Exposé. Click a tile to switch without moving a window; clicking **New workspace** creates and switches to it. The strip shows existing workspaces plus one empty destination; the empty tile uses the first available positive workspace number. If moving the last window removes a numbered workspace, later numbered workspaces shift down to close the gap. A highlighted tile is a valid drop target. Drop outside the strip or press Escape to cancel. Pinned windows cannot be moved this way. In **Per monitor** mode, the strip lists that display's workspaces. In **Same overview** mode, it lists workspaces from all displays and labels each tile with its monitor.
+
+The overlay is created on one display only. With **Same overview**, its all-workspaces view shows every window. With **Per monitor**, it shows only windows that already belong to that display; the current workspace is the one active on that display.
 
 ## Settings
 
@@ -136,7 +139,7 @@ After hiding the bottom text, you can restore it while Settings remains open. If
 Exposé runs unsandboxed inside Omarchy Shell with your user's permissions.
 
 - Its helpers are plain Bash calling `hyprctl`, `jq`, `sleep`, and `timeout`.
-- It reads window, workspace, and monitor state from Quickshell's native Hyprland model, activates or closes the windows you select, and temporarily raises Hyprland's blur while open, restoring the previous value on close.
+- It reads window, workspace, and monitor state from Quickshell's native Hyprland model, activates, closes, or moves the windows you select, and temporarily raises Hyprland's blur while open, restoring the previous value on close.
 - Settings writes touch only the plugin's entry in `~/.config/omarchy/shell.json`.
 - No network, no privilege escalation, no package installs, no services.
 

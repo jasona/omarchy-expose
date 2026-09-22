@@ -83,6 +83,7 @@ ShellRoot {
                 id: card
                 modelData: ({title: "Window preview", lastIpcObject: {class: "example"}, workspace: {id:1,name:"1"}})
                 controller: controller
+                dragHost: window.contentItem
                 screenToplevels: [modelData]
                 acceptsKeyboard: false
                 windowLayout: [Qt.rect(960, 25, 240, 160)]
