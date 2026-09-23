@@ -138,9 +138,11 @@ Item {
     }
     readonly property bool hotCornerOnTop: root.hotCornerPosition.indexOf("top-") === 0
     readonly property bool hotCornerOnLeft: root.hotCornerPosition.indexOf("-left") !== -1
-    readonly property bool hotCornerAllDisplays: root.pluginEntry.hotCornerAllDisplays === true
+    readonly property bool hotCornerAllDisplays: !!root.pluginEntry && root.pluginEntry.hotCornerAllDisplays === true
     readonly property var hotCornerScreens: root.hotCornerEnabled
-        ? ScreenLayout.hotCornerScreens(Quickshell.screens, root.hotCornerPosition, root.hotCornerAllDisplays)
+        ? ScreenLayout.hotCornerScreens(Quickshell.screens,
+            Hyprland.monitors ? Hyprland.monitors.values : [],
+            root.hotCornerPosition, root.hotCornerAllDisplays)
         : []
     onHotCornerScreensChanged: root.scheduleHotCornerRearm()
     // How long the pointer has to rest in the corner before it fires. Zero
@@ -449,6 +451,7 @@ Item {
         root.clearOverviewScreen();
         root.backgroundBlurReleasePhase = 0;
         root.finishDismiss();
+        root.scheduleHotCornerRearm();
     }
 
     function finishDismiss() {
@@ -1853,7 +1856,13 @@ Item {
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.AllButtons
-            onClicked: root.dismiss()
+            onClicked: {
+                if (surface.modelData === root.effectiveOverviewScreen
+                        && (root.previewIndex >= 0 || root.previewExitIndex >= 0))
+                    root.clearPreview();
+                else
+                    root.dismiss();
+            }
             onWheel: function (wheel) { wheel.accepted = true; }
         }
 
@@ -1864,7 +1873,7 @@ Item {
             x: root.hotCornerOnLeft ? 0 : parent.width - width
             y: root.hotCornerOnTop ? 0 : parent.height - height
             z: 100
-            enabled: root.opened && root.hotCornerScreens.indexOf(surface.modelData) !== -1
+            enabled: root.surfaceMounted && root.hotCornerScreens.indexOf(surface.modelData) !== -1
             onTop: root.hotCornerOnTop
             onLeft: root.hotCornerOnLeft
             onEntered: root.triggerHotCorner(String(surface.modelData.name || ""))
