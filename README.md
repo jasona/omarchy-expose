@@ -10,9 +10,9 @@ macOS-style Exposé for Omarchy: one key or a hot corner shows every open window
 - **Quick Look.** Space enlarges any preview and restores it again. Shift+Space does it in slow motion, like the classic macOS Easter egg.
 - **Search.** Just start typing to filter windows by title or application.
 - **Workspace scope.** Press Tab to switch between every window and windows on the current workspace, and pick which of the two the overview opens with. Per-monitor mode evaluates the current workspace of the selected display.
-- **Multi-monitor layouts.** The overview opens only on the focused display (or the display whose hot corner was used). Same overview shows every window there; per monitor keeps that display's own windows.
+- **Multi-monitor layouts.** Every display blurs and dims, with one grid on the focused display (or the display whose hot corner was used). Same overview shows every window there; per monitor keeps that display's own windows.
 - **Built for Omarchy.** Runs inside Omarchy Shell, follows the active theme, and adds no packages, services, or daemons.
-- **Hot corner.** Toggle the overview by flinging the pointer into a corner (on by default, any corner, can be disabled).
+- **Hot corner.** Toggle the overview by flinging the pointer into a corner. Uses the outermost display by default, with an option for all displays.
 
 Everything is tunable from the built-in Settings panel and over IPC, and changes apply instantly.
 
@@ -89,7 +89,9 @@ Removal leaves nothing behind: Exposé keeps no files outside its plugin directo
 
 Clicking a card activates it; middle-clicking closes it. Activation moves the pointer to the chosen window by default; this is a setting, not a change to Hyprland's global cursor behavior.
 
-The overlay is created on one display only. With **Same overview**, that display shows every window. With **Per monitor**, it shows only windows that already belong to that display; after pressing Tab, the current workspace is the one active on that display.
+The window grid stays on the display where Exposé opened. Every display gets the same background blur and dim; clicking any backdrop dismisses Exposé without clicking through to the desktop. With **Same overview**, the grid shows every window. With **Per monitor**, it shows only windows that already belong to that display; when showing the current workspace, it uses the one active on that display.
+
+Hot corners default to the outermost display: left corners use the leftmost display, and right corners use the rightmost. If displays share that edge, the topmost or bottommost one wins according to the chosen corner. Enable **Hot corner → All displays** to use the chosen corner on every display.
 
 ## Settings
 
@@ -105,7 +107,7 @@ Open **Settings** from the footer while the overview is open. It is fully keyboa
 - Window footer style: floating, integrated, overlay, or centered
 - Multiple displays: Same overview (all windows together on the selected display) or Per monitor (only that display's windows)
 - Bottom text visibility. Hiding it requires confirmation and removes the Settings link
-- Hot corner on/off, position (disable the same corner in other hot-corner plugins to avoid overlap), and activation delay (0–1000 ms of pointer dwell before it fires; 0 is instant)
+- Hot corner on/off, position (disable the same corner in other hot-corner plugins to avoid overlap), All displays (off by default), and activation delay (0–1000 ms of pointer dwell before it fires; 0 is instant)
 - Move cursor to the activated window on/off
 
 Every reversible setting is also scriptable:
@@ -127,6 +129,7 @@ omarchy-shell expose windowFooterStyle floating  # floating | integrated | overl
 omarchy-shell expose multiMonitorMode mirrored   # mirrored | per-monitor
 omarchy-shell expose hotCorner on                # on | off
 omarchy-shell expose hotCornerPosition top-left  # top-left | top-right | bottom-left | bottom-right
+omarchy-shell expose hotCornerAllDisplays off    # off: outermost display (default) | on: every display
 omarchy-shell expose hotCornerDelay 0            # 0-1000 ms of dwell before it fires
 omarchy-shell expose moveCursorToWindow on       # on | off
 ```

@@ -538,6 +538,7 @@ Item {
                 categoryButton,
                 hotCornerToggle,
                 hotCornerPositionChoices,
+                hotCornerAllDisplaysToggle,
                 hotCornerDelaySlider
             ]);
         if (settingsView.controller.settingsCategoryIndex === 2)
@@ -939,6 +940,38 @@ Item {
                                         { label: "BR", value: "bottom-right" }
                                     ]
                                     onChosen: function (value) { settingsView.controller.setHotCornerPosition(value); }
+                                }
+                            }
+
+                            SettingsDivider { Layout.fillWidth: true }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Style.space(48)
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Style.spacing.xs
+                                    Text {
+                                        text: "All displays"
+                                        textFormat: Text.PlainText
+                                        color: Color.menu.text
+                                        font.family: Style.font.menuFamily
+                                        font.pixelSize: Style.font.body
+                                    }
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: "Off: only the outermost display on the chosen side."
+                                        textFormat: Text.PlainText
+                                        color: Color.muted
+                                        font.family: Style.font.menuFamily
+                                        font.pixelSize: Style.font.caption
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+                                SettingToggle {
+                                    id: hotCornerAllDisplaysToggle
+                                    checked: settingsView.controller.hotCornerAllDisplays
+                                    onToggled: function (checked) { settingsView.controller.setHotCornerAllDisplays(checked); }
                                 }
                             }
 
