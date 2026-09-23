@@ -31,6 +31,18 @@ function workspaceName(toplevel) {
     return workspace ? String(workspace.name || workspace.id || "—") : "—";
 }
 
+// Workspace names are free-form in Hyprland. Plugins that give every monitor its
+// own set name them "<monitor description>:<slot>", which is far too wide for a
+// card footer, so "slot" keeps the trailing slot number. Anything else, including
+// "special:scratchpad", is returned unchanged.
+function formatWorkspaceLabel(name, style) {
+    var text = String(name === null || name === undefined ? "" : name);
+    if (style !== "slot" || text.indexOf("special:") === 0)
+        return text;
+    var match = text.match(/^.+:(\d+)$/);
+    return match ? match[1] : text;
+}
+
 function isOnScreen(toplevel, screenName, perMonitor) {
     if (!perMonitor)
         return true;

@@ -31,6 +31,19 @@ TestCase {
         return toplevel;
     }
 
+    function test_formatsWorkspaceLabelBySlotOnlyWhenAsked() {
+        compare(WindowModel.formatWorkspaceLabel("LG ULTRAFINE 508NTHMJJ505:3", "slot"), "3");
+        compare(WindowModel.formatWorkspaceLabel("LG ULTRAFINE 508NTHMJJ505:3", "full"), "LG ULTRAFINE 508NTHMJJ505:3");
+        compare(WindowModel.formatWorkspaceLabel("LG ULTRAFINE 508NTHMJJ505:3", undefined), "LG ULTRAFINE 508NTHMJJ505:3");
+    }
+
+    function test_leavesPlainAndSpecialWorkspaceLabelsAlone() {
+        compare(WindowModel.formatWorkspaceLabel("2", "slot"), "2");
+        compare(WindowModel.formatWorkspaceLabel("special:scratchpad", "slot"), "special:scratchpad");
+        compare(WindowModel.formatWorkspaceLabel("notes", "slot"), "notes");
+        compare(WindowModel.formatWorkspaceLabel(undefined, "slot"), "");
+    }
+
     function test_usesStableNativeAddress() {
         var toplevel = createToplevel();
         compare(WindowModel.addressFor(toplevel), "0xabc123");

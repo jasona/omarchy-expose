@@ -1,14 +1,16 @@
 {
   "schemaVersion": 1,
   "id": "expose.window-overview",
-  "name": "Exposé",
-  "version": "4.3.0",
+  "name": "Expos\u00e9",
+  "version": "4.4.0",
   "author": "Kristoffer Risanger (@kristofferR)",
   "license": "MIT",
-  "description": "macOS-style Exposé for Omarchy: one key or a hot corner shows every open window as a live preview. Type to search, press Space to Quick Look, press Enter to launch.",
+  "description": "macOS-style Expos\u00e9 for Omarchy: one key or a hot corner shows every open window as a live preview. Type to search, press Space to Quick Look, press Enter to launch.",
   "icon": "assets/icon.svg",
   "preview": "preview.png",
-  "kinds": ["overlay"],
+  "kinds": [
+    "overlay"
+  ],
   "keepLoaded": true,
   "entryPoints": {
     "overlay": "Overview.qml"
