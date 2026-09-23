@@ -19,6 +19,7 @@ command -v omarchy >/dev/null || {
 
 QT_QPA_PLATFORM=offscreen "$qt6_bin/qmltestrunner" -input tests
 ./tests/check-hot-corner-runtime
+./tests/check-theme-runtime
 
 # Make the installed UI component types visible to qmllint. Commons' dynamic
 # singleton objects remain runtime-injected, as in the shell itself.

@@ -1,5 +1,9 @@
 Run `./validate` for the Qt 6 unit tests, QML lint, shell checks, and manifest
 validation, including lint of the assembled runtime fixture.
+The theme runtime check also exercises every settings page at desktop and narrow
+widths, focus traversal and wrapping, disabled hot-corner controls, conditional
+Motion controls, and scrolling focused controls into view. Run
+`./tests/check-theme-runtime /tmp/expose-settings` to save rendered page captures.
 `./tests/check-blur-lock` checks the blur helper with a temporary runtime directory
 and fake `hyprctl`: planted symlinks and invalid lock paths cannot damage files or
 change compositor settings, and concurrent sessions serialize through restoration.

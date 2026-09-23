@@ -2019,7 +2019,7 @@ Item {
                     if (root.settingsOpen
                             && !root.footerHideConfirmationOpen
                             && event.key >= Qt.Key_1
-                            && event.key <= Qt.Key_4) {
+                            && event.key <= Qt.Key_6) {
                         root.settingsCategoryIndex = event.key - Qt.Key_1;
                         Qt.callLater(overviewWindow.focusSettingsCategory);
                         event.accepted = true;

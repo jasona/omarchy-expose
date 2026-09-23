@@ -24,6 +24,9 @@ ShellRoot {
         readonly property int effectiveHotCornerDelay: hotCornerDelayPreview >= 0 ? hotCornerDelayPreview : hotCornerDelay
         property bool moveCursorToWindow: true
         property string multiMonitorMode: "mirrored"
+        property string initialWorkspaceScope: "all"
+        property string workspaceLabelStyle: "full"
+        property bool separateTiming: false
         property string previewPlacement: "in-place"
         property string windowFooterStyle: "floating"
         property string animationStyle: "original"
@@ -41,7 +44,8 @@ ShellRoot {
         property int previewAnimationDuration: 190
         property int previewAnimationEasing: Easing.OutQuart
         property int previewFadeDuration: 130
-        function animationTimingFor(style) { return {"in":190,"out":190,separate:false}; }
+        function animationTimingFor(style) { return {"in":190,"out":190,separate:separateTiming}; }
+        function focusSettingsItem(item) { item.forceActiveFocus(); return true; }
         function setHotCornerDelay(value) { hotCornerDelay = value; return value; }
         function animationInDurationFor(style) { return 190; }
         function animationOutDurationFor(style) { return 190; }
@@ -97,8 +101,53 @@ ShellRoot {
         if ("narrow" in item) require(Math.abs(Qt.color(item.borderSpec.color).a - 0.3) < 0.01, "menu alpha applied once without an explicit border color");
         for (var i = 0; i < item.children.length; i++) checkBorderless(item.children[i]);
     }
+    function prepareSettingsPage(index) {
+        controller.settingsCategoryIndex = index % 6;
+        controller.hotCornerEnabled = true;
+        controller.animationStyle = "slide";
+        controller.separateTiming = true;
+        window.width = index < 6 ? 1240 : (index < 12 ? 680 : 480);
+        window.height = index < 6 ? 1040 : 760;
+        samples.visible = false;
+        card.visible = false;
+    }
+    function checkSettingsPage(index) {
+        var items = settings.settingsFocusItems();
+        var expectedCounts = [4, 3, 3, 3, 5, 8];
+        require(items.length === expectedCounts[index % 6], "focusable controls on page " + index);
+        settings.focusSettingsCategory();
+        require(items[0].activeFocus, "category focus on page " + index);
+        for (var i = 1; i < items.length; i++) {
+            settings.moveSettingsFocus(true, false);
+            require(items[i].activeFocus, "forward focus on page " + index + " control " + i);
+            var page = items[i].parent;
+            while (page && !(page instanceof Flickable)) page = page.parent;
+            require(page !== null, "control belongs to a scrollable page");
+            var point = items[i].mapToItem(page, 0, 0);
+            require(point.y >= -1 && point.y + items[i].height <= page.height + 1, "focused control is visible on page " + index);
+            require(point.x >= -1 && point.x + items[i].width <= page.width + 1, "control fits page width " + index);
+        }
+        settings.moveSettingsFocus(true, true);
+        require(items[0].activeFocus, "Tab wraps to the category on page " + index);
+        settings.moveSettingsFocus(false, true);
+        require(items[items.length - 1].activeFocus, "Backtab wraps to the last control on page " + index);
+        if (index % 6 === 4) {
+            controller.hotCornerEnabled = false;
+            require(settings.settingsFocusItems().length === 2, "disabled hot corner controls are skipped");
+            controller.hotCornerEnabled = true;
+        }
+        if (index % 6 === 5) {
+            controller.separateTiming = false;
+            require(settings.settingsFocusItems().length === 6, "linked Slide hides separate controls");
+            controller.animationStyle = "original";
+            require(settings.settingsFocusItems().length === 5, "non-Slide hides directions");
+            controller.animationStyle = "slide";
+            controller.separateTiming = true;
+        }
+        settings.focusFirstSettingsControl();
+    }
     function finish() {
-        console.log("PASS: real shell theme tokens, views, compositor window borders, gradients, per-side widths, alpha, zero borders, live reload");
+        console.log("PASS: real shell theme tokens, views, compositor window borders, gradients, per-side widths, alpha, zero borders, live reload, settings layout and focus navigation");
         Qt.quit();
     }
     function require(condition, message) {
@@ -112,7 +161,8 @@ ShellRoot {
         ].join("\n\n"));
     }
     Timer {
-        interval: 500
+        id: testTimer
+        interval: 350
         running: true
         repeat: true
         onTriggered: {
@@ -161,9 +211,28 @@ ShellRoot {
                 compositorBorders(3, "ff224466 0deg", "aa595959 0deg");
                 require(card.outlineSpec.widths.top === 3 && !card.outlineSpec.gradient.enabled, "live compositor change replaces prior gradient and width");
                 if (Quickshell.env("EXPOSE_THEME_OUTPUT_DIR"))
-                    canvas.grabToImage(function(result) { result.saveToFile(Quickshell.env("EXPOSE_THEME_OUTPUT_DIR") + "/theme-light.png"); finish(); });
-                else finish();
+                    canvas.grabToImage(function(result) { result.saveToFile(Quickshell.env("EXPOSE_THEME_OUTPUT_DIR") + "/theme-light.png"); });
                 test.phase++;
+            } else if (test.phase === 4) {
+                prepareSettingsPage(0);
+                test.phase++;
+            } else if (test.phase >= 5 && test.phase <= 22) {
+                var index = test.phase - 5;
+                checkSettingsPage(index);
+                if (Quickshell.env("EXPOSE_THEME_OUTPUT_DIR")) {
+                    var path = Quickshell.env("EXPOSE_THEME_OUTPUT_DIR") + "/settings-" + index + ".png";
+                    testTimer.stop();
+                    canvas.grabToImage(function(result) {
+                        result.saveToFile(path);
+                        if (index < 17) prepareSettingsPage(index + 1);
+                        testTimer.start();
+                    });
+                } else if (index < 17) {
+                    prepareSettingsPage(index + 1);
+                }
+                test.phase++;
+            } else if (test.phase === 23) {
+                finish();
             }
         }
     }
