@@ -15,6 +15,10 @@ fi
 
 [[ $address =~ ^0x[0-9a-fA-F]+$ ]] || exit 2
 
+# The shell restores the previously focused client just after Exposé hides.
+# Let that handoff finish before selecting the clicked window.
+sleep 0.08
+
 if [[ $move_cursor != "true" ]]; then
   cursor_position=$(hyprctl cursorpos 2>/dev/null || true)
   IFS=',' read -r cursor_x cursor_y <<< "$cursor_position"
@@ -28,7 +32,8 @@ if [[ $move_cursor != "true" ]]; then
   fi
 fi
 
-hyprctl eval "hl.dispatch(hl.dsp.focus({ window = 'address:$address' }))" >/dev/null
+# Focusing a floating window does not necessarily put it above its peers.
+hyprctl eval "hl.dispatch(hl.dsp.focus({ window = 'address:$address' })); hl.dispatch(hl.dsp.window.bring_to_top())" >/dev/null
 
 if [[ -n ${cursor_x:-} && -n ${cursor_y:-} ]]; then
   hyprctl eval "hl.dispatch(hl.dsp.cursor.move({ x = $cursor_x, y = $cursor_y }))" >/dev/null
