@@ -10,7 +10,7 @@ macOS-style Exposé for Omarchy: one key or a hot corner shows every open window
 - **Quick Look.** Space enlarges any preview and restores it again. Shift+Space does it in slow motion, like the classic macOS Easter egg.
 - **Search.** Just start typing to filter windows by title or application.
 - **Workspace scope.** Press Tab to switch between every window and windows on the current workspace, and pick which of the two the overview opens with. Per-monitor mode evaluates the current workspace of the selected display.
-- **Workspace strip.** See each existing workspace above the window grid. Drag a window onto a workspace tile to move it without leaving Exposé, or onto **New workspace** to create one. Click any tile to switch to that workspace.
+- **Workspace strip (optional).** Turn it on to see each workspace above the window grid. Click a tile to switch to it, or drag a window onto a tile to move it there. Each part of this is its own setting.
 - **Multi-monitor layouts.** Every display blurs and dims, with one grid on the focused display (or the display whose hot corner was used). All displays shows every window there; This display keeps that display's own windows.
 - **Built for Omarchy.** Runs inside Omarchy Shell, follows the active theme, and adds no packages, services, or daemons.
 - **Hot corner.** Toggle the overview by flinging the pointer into a corner. Uses the outermost display by default, with an option for all displays.
@@ -90,7 +90,7 @@ Removal leaves nothing behind: Exposé keeps no files outside its plugin directo
 
 Clicking a card activates it; middle-clicking closes it. Activation moves the pointer to the chosen window by default; this is a setting, not a change to Hyprland's global cursor behavior.
 
-Drag a card to a workspace tile at the top to move that window, switch to its destination workspace, and close Exposé. Click a tile to switch without moving a window; clicking **New workspace** creates and switches to it. The strip shows existing workspaces plus one empty destination; the empty tile uses the first available positive workspace number. If moving the last window removes a numbered workspace, later numbered workspaces shift down to close the gap. A highlighted tile is a valid drop target. Drop outside the strip or press Escape to cancel. Pinned windows cannot be moved this way. In **This display** mode, the strip lists that display's workspaces. In **All displays** mode, it lists workspaces from all displays and labels each tile with its monitor.
+The workspace strip is off by default; enable it under **Settings → Workspaces**. Click a tile to switch to that workspace. With dragging on, drop a card on a tile to move that window; by default Exposé then follows the window to its new workspace and closes, or choose **Stay here** to keep the overview open. The optional **New workspace** tile uses the first available positive workspace number. **Close numbering gaps** (off by default) shifts later numbered workspaces down when a move empties one. A highlighted tile is a valid drop target. Drop outside the strip or press Escape to cancel. Pinned windows cannot be moved this way. In **This display** mode, the strip lists that display's workspaces. In **All displays** mode, it lists workspaces from all displays and labels each tile with its monitor.
 
 The window grid stays on the display where Exposé opened. Every display gets the same background blur and dim; clicking any backdrop dismisses Exposé without clicking through to the desktop. With **All displays**, the grid shows every window. With **This display**, it shows only windows that already belong to that display; when showing the current workspace, it uses the one active on that display.
 
@@ -112,6 +112,8 @@ Open **Settings** from the footer while the overview is open. It is fully keyboa
 - Bottom text visibility. Hiding it requires confirmation and removes the Settings link
 - Hot corner on/off, position (disable the same corner in other hot-corner plugins to avoid overlap), All displays (off by default), and activation delay (0–1000 ms of pointer dwell before it fires; 0 is instant)
 - Move cursor to the activated window on/off
+- Recover off-screen windows: center a floating window that sits outside every display when you activate it (off by default)
+- Workspace strip (off by default), dragging windows onto it (on), after a move follow the window or stay (follow), the New workspace tile (on), and closing workspace numbering gaps (off)
 
 Every reversible setting is also scriptable:
 
@@ -135,6 +137,12 @@ omarchy-shell expose hotCornerPosition top-left  # top-left | top-right | bottom
 omarchy-shell expose hotCornerAllDisplays off    # off: outermost display (default) | on: every display
 omarchy-shell expose hotCornerDelay 0            # 0-1000 ms of dwell before it fires
 omarchy-shell expose moveCursorToWindow on       # on | off
+omarchy-shell expose recoverOffscreenWindows off # on | off
+omarchy-shell expose workspaceStrip off          # on | off
+omarchy-shell expose workspaceDrag on            # on | off
+omarchy-shell expose afterWorkspaceMove follow   # follow | stay
+omarchy-shell expose newWorkspaceTile on         # on | off
+omarchy-shell expose closeWorkspaceGaps off      # on | off
 ```
 
 After hiding the bottom text, you can restore it while Settings remains open. If you close Settings first, edit `~/.config/omarchy/shell.json` and set `"showFooter": true` in the `expose.window-overview` plugin entry.

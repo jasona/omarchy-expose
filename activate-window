@@ -5,6 +5,7 @@ address="${1:-}"
 app_id="${2:-}"
 title="${3:-}"
 move_cursor="${4:-false}"
+recover_offscreen="${5:-false}"
 
 if [[ ! $address =~ ^0x[0-9a-fA-F]+$ ]]; then
   address=$(hyprctl -j clients | jq -r --arg app "${app_id,,}" --arg title "$title" '
@@ -32,10 +33,14 @@ if [[ $move_cursor != "true" ]]; then
   fi
 fi
 
-# Recover floating windows stranded outside the current monitor layout.
-# Missing or malformed geometry leaves activation unchanged.
-clients_json=$(hyprctl -j clients 2>/dev/null) || clients_json=""
-monitors_json=$(hyprctl -j monitors 2>/dev/null) || monitors_json=""
+# Optionally recover floating windows stranded outside the current monitor
+# layout. Missing or malformed geometry leaves activation unchanged.
+clients_json=""
+monitors_json=""
+if [[ $recover_offscreen == true ]]; then
+  clients_json=$(hyprctl -j clients 2>/dev/null) || clients_json=""
+  monitors_json=$(hyprctl -j monitors 2>/dev/null) || monitors_json=""
+fi
 if [[ -n $clients_json && -n $monitors_json ]]; then
   offscreen=$(jq -nr --arg address "$address" \
     --argjson clients "$clients_json" --argjson monitors "$monitors_json" '

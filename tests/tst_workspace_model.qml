@@ -41,6 +41,13 @@ TestCase {
         compare(entries[1].monitorName, "DP-1");
     }
 
+    function test_newWorkspaceTileCanBeOmitted() {
+        var workspaces = [{id: 1, name: "1", monitor: dp}];
+        var entries = WorkspaceModel.entries(workspaces, [], "DP-1", false, false);
+        compare(entries.length, 1);
+        verify(!entries[0].isNew);
+    }
+
     function test_rejectsCurrentWorkspacePinnedAndUnknownTargets() {
         var top = {workspace: {id: 1, name: "1"}, lastIpcObject: {pinned: false}};
         verify(!WorkspaceModel.canMove(top, {id: 1, name: "1", monitorName: "DP-1"}));

@@ -175,7 +175,24 @@ Item {
         ? "per-monitor"
         : "mirrored"
     readonly property bool showFooter: !root.pluginEntry || root.pluginEntry.showFooter !== false
+    // The workspace strip and everything it enables are opt-in, so a default
+    // install keeps the plain window grid.
+    readonly property bool showWorkspaceStrip: !!root.pluginEntry && root.pluginEntry.showWorkspaceStrip === true
+    readonly property bool workspaceDragEnabled: !root.pluginEntry || root.pluginEntry.workspaceDragEnabled !== false
+    readonly property bool workspaceDragAvailable: root.showWorkspaceStrip && root.workspaceDragEnabled
+    // "follow" switches to the destination and closes Exposé; "stay" keeps
+    // the overview open on the current workspace.
+    readonly property string afterWorkspaceMove: root.pluginEntry && root.pluginEntry.afterWorkspaceMove === "stay"
+        ? "stay"
+        : "follow"
+    readonly property bool closeWorkspaceGaps: !!root.pluginEntry && root.pluginEntry.closeWorkspaceGaps === true
+    readonly property bool showNewWorkspaceTile: !root.pluginEntry || root.pluginEntry.showNewWorkspaceTile !== false
+    readonly property bool recoverOffscreenWindows: !!root.pluginEntry && root.pluginEntry.recoverOffscreenWindows === true
     property bool opened: false
+    onWorkspaceDragAvailableChanged: {
+        if (!root.workspaceDragAvailable)
+            root.cancelWindowDrag();
+    }
     property bool surfaceMounted: false
     property bool hotCornerArmed: true
     property string filterText: ""
@@ -739,6 +756,43 @@ Item {
             root.updatePluginSetting("moveCursorToWindow", next);
     }
 
+    function setShowWorkspaceStrip(enabled) {
+        var next = enabled === true;
+        if (next !== root.showWorkspaceStrip)
+            root.updatePluginSetting("showWorkspaceStrip", next);
+    }
+
+    function setWorkspaceDragEnabled(enabled) {
+        var next = enabled === true;
+        if (next !== root.workspaceDragEnabled)
+            root.updatePluginSetting("workspaceDragEnabled", next);
+    }
+
+    function setAfterWorkspaceMove(value) {
+        var next = String(value) === "stay" ? "stay" : "follow";
+        if (next !== root.afterWorkspaceMove)
+            root.updatePluginSetting("afterWorkspaceMove", next);
+        return next;
+    }
+
+    function setCloseWorkspaceGaps(enabled) {
+        var next = enabled === true;
+        if (next !== root.closeWorkspaceGaps)
+            root.updatePluginSetting("closeWorkspaceGaps", next);
+    }
+
+    function setShowNewWorkspaceTile(enabled) {
+        var next = enabled === true;
+        if (next !== root.showNewWorkspaceTile)
+            root.updatePluginSetting("showNewWorkspaceTile", next);
+    }
+
+    function setRecoverOffscreenWindows(enabled) {
+        var next = enabled === true;
+        if (next !== root.recoverOffscreenWindows)
+            root.updatePluginSetting("recoverOffscreenWindows", next);
+    }
+
     function setMultiMonitorMode(value) {
         var mode = value === "per-monitor" ? "per-monitor" : "mirrored";
         if (mode !== root.multiMonitorMode)
@@ -902,11 +956,11 @@ Item {
     function workspaceEntriesForScreen(screenName) {
         var workspaces = Hyprland.workspaces ? Hyprland.workspaces.values : [];
         return WorkspaceModel.entries(workspaces, root.sessionToplevels, screenName,
-            root.multiMonitorMode === "per-monitor");
+            root.multiMonitorMode === "per-monitor", root.showNewWorkspaceTile);
     }
 
     function beginWindowDrag(top, host, x, y) {
-        if (!top || !host || root.settingsOpen || root.previewIndex >= 0)
+        if (!top || !host || !root.workspaceDragAvailable || root.settingsOpen || root.previewIndex >= 0)
             return;
         root.draggingTop = top;
         root.dragHost = host;
@@ -940,11 +994,15 @@ Item {
         if (!address)
             return;
         root.workspaceMoveMessage = "";
+        var follow = root.afterWorkspaceMove === "follow";
         moveWindowProcess.movedWindowAddress = address;
         moveWindowProcess.command = [root.pluginDir + "/move-window-to-workspace",
             address, String(target.id), target.name, target.monitorName,
             target.isNew ? "true" : "false",
-            String(top.workspace ? top.workspace.id : 0)];
+            String(top.workspace ? top.workspace.id : 0),
+            follow ? "true" : "false",
+            root.closeWorkspaceGaps ? "true" : "false"];
+        moveWindowProcess.follow = follow;
         moveWindowProcess.running = true;
     }
 
@@ -1034,7 +1092,8 @@ Item {
             WindowModel.addressFor(top),
             WindowModel.appIdFor(top),
             String(top.title || ""),
-            root.moveCursorToWindow ? "true" : "false"
+            root.moveCursorToWindow ? "true" : "false",
+            root.recoverOffscreenWindows ? "true" : "false"
         ];
         root.dismiss();
     }
@@ -1616,6 +1675,7 @@ Item {
         id: moveWindowProcess
         property string errorText: ""
         property string movedWindowAddress: ""
+        property bool follow: true
         stderr: SplitParser {
             onRead: function(line) { moveWindowProcess.errorText += line + " "; }
         }
@@ -1624,11 +1684,14 @@ Item {
                 root.workspaceMoveMessage = moveWindowProcess.errorText.trim()
                     || "Could not move the window. Try again.";
                 workspaceMoveMessageTimer.restart();
-            } else {
+            } else if (moveWindowProcess.follow) {
                 root.pendingActivation = [root.pluginDir + "/activate-window",
                     moveWindowProcess.movedWindowAddress, "", "",
-                    root.moveCursorToWindow ? "true" : "false"];
+                    root.moveCursorToWindow ? "true" : "false",
+                    root.recoverOffscreenWindows ? "true" : "false"];
                 root.dismiss();
+            } else {
+                root.refreshHyprlandState();
             }
             moveWindowProcess.errorText = "";
             moveWindowProcess.movedWindowAddress = "";
@@ -1845,6 +1908,41 @@ Item {
             if (mode !== "on" && mode !== "off")
                 return "expected on or off";
             root.setMoveCursorToWindow(mode === "on");
+            return mode;
+        }
+        function workspaceStrip(mode: string): string {
+            if (mode !== "on" && mode !== "off")
+                return "expected on or off";
+            root.setShowWorkspaceStrip(mode === "on");
+            return mode;
+        }
+        function workspaceDrag(mode: string): string {
+            if (mode !== "on" && mode !== "off")
+                return "expected on or off";
+            root.setWorkspaceDragEnabled(mode === "on");
+            return mode;
+        }
+        function afterWorkspaceMove(mode: string): string {
+            if (mode !== "follow" && mode !== "stay")
+                return "expected follow or stay";
+            return root.setAfterWorkspaceMove(mode);
+        }
+        function closeWorkspaceGaps(mode: string): string {
+            if (mode !== "on" && mode !== "off")
+                return "expected on or off";
+            root.setCloseWorkspaceGaps(mode === "on");
+            return mode;
+        }
+        function newWorkspaceTile(mode: string): string {
+            if (mode !== "on" && mode !== "off")
+                return "expected on or off";
+            root.setShowNewWorkspaceTile(mode === "on");
+            return mode;
+        }
+        function recoverOffscreenWindows(mode: string): string {
+            if (mode !== "on" && mode !== "off")
+                return "expected on or off";
+            root.setRecoverOffscreenWindows(mode === "on");
             return mode;
         }
         function multiMonitorMode(mode: string): string {
@@ -2250,6 +2348,7 @@ Item {
 
                     Item {
                         id: workspaceBand
+                        visible: root.showWorkspaceStrip
                         Layout.fillWidth: true
                         Layout.preferredHeight: Style.space(108)
                         z: 1
@@ -2379,7 +2478,9 @@ Item {
                                                     anchors.centerIn: parent
                                                     visible: workspaceTile.modelData.isNew
                                                         || workspaceTile.modelData.windows.length === 0
-                                                    text: workspaceTile.modelData.isNew ? "Click or drop here" : "Empty"
+                                                    text: workspaceTile.modelData.isNew
+                                                        ? (root.workspaceDragAvailable ? "Click or drop here" : "Click to create")
+                                                        : "Empty"
                                                     textFormat: Text.PlainText
                                                     color: Color.menu.text
                                                     opacity: 0.65
@@ -2477,7 +2578,8 @@ Item {
 
                         Text {
                             text: root.workspaceMoveMessage
-                                || "Drag a window to a workspace   ·   Tab scope   ·   Space preview   ·   Enter open   ·   Esc close"
+                                || (root.workspaceDragAvailable ? "Drag to a workspace   " : "")
+                                + "← ↑ ↓ → navigate   Space preview   Tab scope   Shift+Q close   Enter open   Esc close"
                             textFormat: Text.PlainText
                             color: Color.menu.text
                             opacity: 0.55

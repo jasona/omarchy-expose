@@ -30,7 +30,7 @@ grep -Fq 'hl.dsp.focus({ workspace = "2" })' "$MOVE_TEST_LOG"
 
 : > "$MOVE_TEST_LOG"
 MOVE_TEST_WORKSPACES='[{"id":3,"name":"3"}]' \
-  "$helper" 0xabc 3 3 HDMI-A-1 true 2
+  "$helper" 0xabc 3 3 HDMI-A-1 true 2 true true
 [[ $(wc -l < "$MOVE_TEST_LOG") == 5 ]]
 grep -Fq 'hl.dsp.workspace.move({ workspace = "3", monitor = "HDMI-A-1" })' "$MOVE_TEST_LOG"
 [[ $(sed -n '3p' "$MOVE_TEST_LOG") == *'hl.dsp.focus({ workspace = "3" })'* ]]
@@ -39,11 +39,44 @@ grep -Fq 'hl.dsp.focus({ workspace = "2" })' "$MOVE_TEST_LOG"
 
 : > "$MOVE_TEST_LOG"
 MOVE_TEST_WORKSPACES='[{"id":7,"name":"7"},{"id":8,"name":"8"}]' \
-  "$helper" 0xabc 8 8 DP-1 false 6
+  "$helper" 0xabc 8 8 DP-1 false 6 true true
 [[ $(sed -n '2p' "$MOVE_TEST_LOG") == *'hl.dsp.focus({ workspace = "8" })'* ]]
 grep -Fq 'hl.dsp.workspace.change_id({ workspace = "7", id = 6 })' "$MOVE_TEST_LOG"
 grep -Fq 'hl.dsp.workspace.change_id({ workspace = "8", id = 7 })' "$MOVE_TEST_LOG"
 grep -Fq 'hl.dsp.focus({ workspace = "7" })' "$MOVE_TEST_LOG"
+
+# Gap closing is opt-in.
+: > "$MOVE_TEST_LOG"
+MOVE_TEST_WORKSPACES='[{"id":7,"name":"7"},{"id":8,"name":"8"}]' \
+  "$helper" 0xabc 8 8 DP-1 false 6
+[[ $(wc -l < "$MOVE_TEST_LOG") == 2 ]]
+if grep -Fq 'change_id' "$MOVE_TEST_LOG"; then
+  echo "workspace gaps were closed without being enabled" >&2
+  exit 1
+fi
+
+# Staying in Exposé moves the window without switching workspaces.
+: > "$MOVE_TEST_LOG"
+MOVE_TEST_WORKSPACES='[{"id":1,"name":"1"},{"id":2,"name":"2"}]' \
+  "$helper" 0xabc 2 2 DP-1 false 1 false false
+[[ $(wc -l < "$MOVE_TEST_LOG") == 1 ]]
+grep -Fq 'hl.dsp.window.move(' "$MOVE_TEST_LOG"
+
+: > "$MOVE_TEST_LOG"
+MOVE_TEST_WORKSPACES='[{"id":7,"name":"7"},{"id":8,"name":"8"}]' \
+  "$helper" 0xabc 8 8 DP-1 false 6 false true
+grep -Fq 'hl.dsp.workspace.change_id({ workspace = "7", id = 6 })' "$MOVE_TEST_LOG"
+if grep -Fq 'hl.dsp.focus(' "$MOVE_TEST_LOG"; then
+  echo "staying in Exposé switched workspaces" >&2
+  exit 1
+fi
+
+: > "$MOVE_TEST_LOG"
+if "$helper" 0xabc 2 2 DP-1 false 1 maybe false; then
+  echo "invalid follow flag was accepted" >&2
+  exit 1
+fi
+[[ ! -s $MOVE_TEST_LOG ]]
 
 : > "$MOVE_TEST_LOG"
 "$helper" 0xabc -4 'team "a"' DP-1 false

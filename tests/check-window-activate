@@ -22,10 +22,10 @@ helper="$(dirname "$0")/../activate-window"
 monitor='[{"x":0,"y":0,"width":1920,"height":1080,"disabled":false}]'
 
 check_case() {
-  local name=$1 clients=$2 monitors=$3 expect_center=$4 move_cursor=$5
+  local name=$1 clients=$2 monitors=$3 expect_center=$4 move_cursor=$5 recover=${6:-true}
   : > "$ACTIVATE_TEST_LOG"
   ACTIVATE_TEST_CLIENTS=$clients ACTIVATE_TEST_MONITORS=$monitors \
-    "$helper" 0xabc app title "$move_cursor"
+    "$helper" 0xabc app title "$move_cursor" "$recover"
 
   local -a dispatches=()
   local call
@@ -94,5 +94,12 @@ check_case usable_overlap \
 check_case move_cursor \
   '[{"address":"0xabc","floating":true,"at":[-4500,100],"size":[600,400]}]' \
   "$monitor" true true
+check_case recovery_off \
+  '[{"address":"0xabc","floating":true,"at":[-4500,100],"size":[600,400]}]' \
+  "$monitor" false false false
+if grep -Fxq -- '-j clients' "$ACTIVATE_TEST_LOG"; then
+  echo "recovery_off: queried clients without recovery enabled" >&2
+  exit 1
+fi
 
 echo "window activate helper: passed"

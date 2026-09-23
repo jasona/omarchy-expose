@@ -7,12 +7,16 @@ workspace_name=${3:-}
 monitor_name=${4:-}
 new_workspace=${5:-false}
 source_id=${6:-0}
+follow=${7:-true}
+close_gaps=${8:-false}
 
 [[ $address =~ ^0x[0-9a-fA-F]+$ ]] || exit 2
 [[ $workspace_id =~ ^-?[0-9]+$ ]] || exit 2
 [[ -n $workspace_name && -n $monitor_name ]] || exit 2
 [[ $new_workspace == true || $new_workspace == false ]] || exit 2
 [[ $source_id =~ ^-?[0-9]+$ ]] || exit 2
+[[ $follow == true || $follow == false ]] || exit 2
+[[ $close_gaps == true || $close_gaps == false ]] || exit 2
 [[ $workspace_name != *$'\n'* && $workspace_name != *$'\r'* ]] || exit 2
 [[ $monitor_name != *$'\n'* && $monitor_name != *$'\r'* ]] || exit 2
 
@@ -42,12 +46,14 @@ if [[ $new_workspace == true ]]; then
 fi
 
 # Switching away also lets Hyprland remove an empty active source workspace.
-hyprctl eval "hl.dispatch(hl.dsp.focus({ workspace = $workspace_literal }))" >/dev/null
+if [[ $follow == true ]]; then
+  hyprctl eval "hl.dispatch(hl.dsp.focus({ workspace = $workspace_literal }))" >/dev/null
+fi
 
 # Hyprland removes a nonpersistent workspace when its last window leaves.
-# Close that numeric gap before focusing the destination. Renaming in ascending
-# order always moves into the ID vacated by the preceding rename.
-if (( source_id > 0 && source_id != workspace_id )); then
+# When enabled, close that numeric gap. Renaming in ascending order always
+# moves into the ID vacated by the preceding rename.
+if [[ $close_gaps == true ]] && (( source_id > 0 && source_id != workspace_id )); then
   workspaces_json=""
   for attempt in 1 2 3 4; do
     workspaces_json=$(hyprctl -j workspaces) || break
@@ -68,7 +74,7 @@ if (( source_id > 0 && source_id != workspace_id )); then
         fi
       done
       workspace_literal=$(lua_quote "$workspace_selector")
-      if [[ $workspace_selector != $workspace_id ]]; then
+      if [[ $follow == true && $workspace_selector != "$workspace_id" ]]; then
         hyprctl eval "hl.dispatch(hl.dsp.focus({ workspace = $workspace_literal }))" >/dev/null
       fi
       break

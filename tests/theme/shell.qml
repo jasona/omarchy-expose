@@ -23,6 +23,13 @@ ShellRoot {
         property int hotCornerDelay: 0
         readonly property int effectiveHotCornerDelay: hotCornerDelayPreview >= 0 ? hotCornerDelayPreview : hotCornerDelay
         property bool moveCursorToWindow: true
+        property bool recoverOffscreenWindows: false
+        property bool showWorkspaceStrip: true
+        property bool workspaceDragEnabled: true
+        readonly property bool workspaceDragAvailable: showWorkspaceStrip && workspaceDragEnabled
+        property string afterWorkspaceMove: "follow"
+        property bool closeWorkspaceGaps: false
+        property bool showNewWorkspaceTile: true
         property string multiMonitorMode: "mirrored"
         property string initialWorkspaceScope: "all"
         property string workspaceLabelStyle: "full"
@@ -114,7 +121,7 @@ ShellRoot {
     }
     function checkSettingsPage(index) {
         var items = settings.settingsFocusItems();
-        var expectedCounts = [4, 3, 3, 3, 5, 8];
+        var expectedCounts = [4, 4, 3, 8, 5, 8];
         require(items.length === expectedCounts[index % 6], "focusable controls on page " + index);
         settings.focusSettingsCategory();
         require(items[0].activeFocus, "category focus on page " + index);
@@ -132,6 +139,14 @@ ShellRoot {
         require(items[0].activeFocus, "Tab wraps to the category on page " + index);
         settings.moveSettingsFocus(false, true);
         require(items[items.length - 1].activeFocus, "Backtab wraps to the last control on page " + index);
+        if (index % 6 === 3) {
+            controller.workspaceDragEnabled = false;
+            require(settings.settingsFocusItems().length === 6, "drag-only workspace controls are skipped");
+            controller.showWorkspaceStrip = false;
+            require(settings.settingsFocusItems().length === 4, "workspace strip controls are skipped while the strip is off");
+            controller.showWorkspaceStrip = true;
+            controller.workspaceDragEnabled = true;
+        }
         if (index % 6 === 4) {
             controller.hotCornerEnabled = false;
             require(settings.settingsFocusItems().length === 2, "disabled hot corner controls are skipped");

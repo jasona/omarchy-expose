@@ -103,7 +103,8 @@ Ui.BorderSurface {
             dragActive = false;
         }
         onPositionChanged: function(mouse) {
-            if (!(mouse.buttons & Qt.LeftButton) || !card.inLayout)
+            if (!(mouse.buttons & Qt.LeftButton) || !card.inLayout
+                    || !card.controller.workspaceDragAvailable)
                 return;
             if (!dragActive) {
                 var dx = mouse.x - pressX;

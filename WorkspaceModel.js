@@ -21,7 +21,7 @@ function nextWorkspaceId(workspaces) {
     return next;
 }
 
-function entries(workspaces, toplevels, screenName, perMonitor) {
+function entries(workspaces, toplevels, screenName, perMonitor, includeNewWorkspace) {
     var result = [];
     var wantedMonitor = String(screenName || "");
     for (var index = 0; index < workspaces.length; index++) {
@@ -58,6 +58,8 @@ function entries(workspaces, toplevels, screenName, perMonitor) {
             return left.id - right.id;
         return left.name < right.name ? -1 : (left.name > right.name ? 1 : 0);
     });
+    if (includeNewWorkspace === false)
+        return result;
     var newId = nextWorkspaceId(workspaces);
     result.push({
         id: newId,
