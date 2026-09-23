@@ -892,6 +892,7 @@ Item {
         if (!address)
             return;
         root.workspaceMoveMessage = "";
+        moveWindowProcess.movedWindowAddress = address;
         moveWindowProcess.command = [root.pluginDir + "/move-window-to-workspace",
             address, String(target.id), target.name, target.monitorName,
             target.isNew ? "true" : "false",
@@ -1562,6 +1563,7 @@ Item {
     Process {
         id: moveWindowProcess
         property string errorText: ""
+        property string movedWindowAddress: ""
         stderr: SplitParser {
             onRead: function(line) { moveWindowProcess.errorText += line + " "; }
         }
@@ -1571,9 +1573,13 @@ Item {
                     || "Could not move the window. Try again.";
                 workspaceMoveMessageTimer.restart();
             } else {
+                root.pendingActivation = [root.pluginDir + "/activate-window",
+                    moveWindowProcess.movedWindowAddress, "", "",
+                    root.moveCursorToWindow ? "true" : "false"];
                 root.dismiss();
             }
             moveWindowProcess.errorText = "";
+            moveWindowProcess.movedWindowAddress = "";
         }
     }
 
