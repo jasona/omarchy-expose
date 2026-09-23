@@ -79,6 +79,10 @@ fi
 [[ ! -s $MOVE_TEST_LOG ]]
 
 : > "$MOVE_TEST_LOG"
+"$helper" 0xabc -98 special:scratch DP-1 false 1 false
+grep -Fq 'hl.dsp.window.move({ workspace = "special:scratch", window = "address:0xabc", follow = false })' "$MOVE_TEST_LOG"
+
+: > "$MOVE_TEST_LOG"
 "$helper" 0xabc -4 'team "a"' DP-1 false
 grep -Fq 'workspace = "name:team \"a\""' "$MOVE_TEST_LOG"
 grep -Fq 'hl.dsp.focus({ workspace = "name:team \"a\"" })' "$MOVE_TEST_LOG"

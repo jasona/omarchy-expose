@@ -20,8 +20,11 @@ close_gaps=${8:-false}
 [[ $workspace_name != *$'\n'* && $workspace_name != *$'\r'* ]] || exit 2
 [[ $monitor_name != *$'\n'* && $monitor_name != *$'\r'* ]] || exit 2
 
+# Special workspaces are addressed by their own "special:<name>" selector.
 if (( workspace_id > 0 )); then
   workspace_selector=$workspace_id
+elif [[ $workspace_name == special || $workspace_name == special:* ]]; then
+  workspace_selector=$workspace_name
 else
   workspace_selector="name:$workspace_name"
 fi

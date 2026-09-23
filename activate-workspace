@@ -15,8 +15,11 @@ if [[ $new_workspace == true && $workspace_id -le 0 ]]; then
   exit 2
 fi
 
+# Special workspaces are addressed by their own "special:<name>" selector.
 if (( workspace_id > 0 )); then
   workspace_selector=$workspace_id
+elif [[ $workspace_name == special || $workspace_name == special:* ]]; then
+  workspace_selector=$workspace_name
 else
   workspace_selector="name:$workspace_name"
 fi

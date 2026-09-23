@@ -320,6 +320,8 @@ Item {
     function open(payload) {
         windowBorders.refresh();
         root.cancelWindowDrag();
+        // Reopening before the close finished abandons its queued activation.
+        root.pendingActivation = null;
         root.workspaceMoveMessage = "";
         var blurRestoreInFlight = root.backgroundBlurReleasePhase === 1 && backgroundBlurSession.running;
         if (!blurRestoreInFlight)
@@ -2419,9 +2421,8 @@ Item {
 
                                                 Text {
                                                     width: parent.width - (monitorLabel.visible ? monitorLabel.width + parent.spacing : 0)
-                                                    text: workspaceTile.modelData.isNew
-                                                        ? "New workspace " + workspaceTile.modelData.name
-                                                        : "Workspace " + workspaceTile.modelData.name
+                                                    text: (workspaceTile.modelData.isNew ? "New workspace " : "Workspace ")
+                                                        + root.formatWorkspaceLabel(workspaceTile.modelData.name)
                                                     textFormat: Text.PlainText
                                                     elide: Text.ElideRight
                                                     color: Color.menu.text

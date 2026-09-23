@@ -27,6 +27,10 @@ grep -Fxq 'hl.dispatch(hl.dsp.focus({ workspace = "7" }))' "$ACTIVATE_TEST_LOG"
 grep -Fxq 'hl.dispatch(hl.dsp.focus({ workspace = "name:team \"a\"" }))' "$ACTIVATE_TEST_LOG"
 
 : > "$ACTIVATE_TEST_LOG"
+"$helper" -98 special:scratch DP-1 false
+grep -Fxq 'hl.dispatch(hl.dsp.focus({ workspace = "special:scratch" }))' "$ACTIVATE_TEST_LOG"
+
+: > "$ACTIVATE_TEST_LOG"
 "$helper" 8 8 HDMI-A-1 true
 [[ $(wc -l < "$ACTIVATE_TEST_LOG") == 2 ]]
 [[ $(sed -n '1p' "$ACTIVATE_TEST_LOG") == 'hl.dispatch(hl.dsp.focus({ monitor = "HDMI-A-1" }))' ]]
