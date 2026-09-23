@@ -8,6 +8,7 @@ import qs.Commons // qmllint disable import
 import qs.Ui as Ui // qmllint disable import
 import "IconResolver.js" as IconResolver
 import "WindowModel.js" as WindowModel
+import "ScreenLayout.js" as ScreenLayout
 import "WorkspaceModel.js" as WorkspaceModel
 
 Item {
@@ -138,12 +139,32 @@ Item {
     }
     readonly property bool hotCornerOnTop: root.hotCornerPosition.indexOf("top-") === 0
     readonly property bool hotCornerOnLeft: root.hotCornerPosition.indexOf("-left") !== -1
+    readonly property bool hotCornerAllDisplays: !!root.pluginEntry && root.pluginEntry.hotCornerAllDisplays === true
+    readonly property var hotCornerScreens: root.hotCornerEnabled
+        ? ScreenLayout.hotCornerScreens(Quickshell.screens,
+            Hyprland.monitors ? Hyprland.monitors.values : [],
+            root.hotCornerPosition, root.hotCornerAllDisplays)
+        : []
+    onHotCornerScreensChanged: root.scheduleHotCornerRearm()
     // How long the pointer has to rest in the corner before it fires. Zero
     // keeps the original instant trip; longer dwells stop stray flings.
     readonly property int hotCornerDelay: {
         var raw = root.pluginEntry ? root.pluginEntry.hotCornerDelay : undefined;
         var value = raw === null || raw === undefined ? NaN : Number(raw);
         return isFinite(value) ? Math.max(0, Math.min(1000, Math.round(value))) : 0;
+    }
+    // Which windows the overview starts with. "all" keeps every workspace, as
+    // before; "current" opens on the active workspace and leaves Tab to widen.
+    readonly property string initialWorkspaceScope: {
+        var raw = root.pluginEntry ? root.pluginEntry.initialWorkspaceScope : undefined;
+        return String(raw) === "current" ? "current" : "all";
+    }
+    // How a workspace is named on the cards and in the scope indicator. Plugins
+    // such as per-monitor-workspaces name a workspace "<monitor description>:<slot>",
+    // which is far wider than a card footer; "slot" prints the trailing slot only.
+    readonly property string workspaceLabelStyle: {
+        var raw = root.pluginEntry ? root.pluginEntry.workspaceLabelStyle : undefined;
+        return String(raw) === "slot" ? "slot" : "full";
     }
     // Reach farther along both screen edges than into the desktop. Fast flings
     // are easier to catch without stealing a large square from the bar below.
@@ -240,14 +261,22 @@ Item {
             return String(active.monitor.name || "");
         return Quickshell.screens.length ? String(Quickshell.screens[0].name || "") : "";
     }
-    // One overlay surface: the focused monitor, or the display whose hot
-    // corner opened Exposé. Instantiating on every enabled output duplicates
-    // screencopy captures and layer textures.
+    // Only the selected display creates cards and screencopy captures.
     readonly property var mountedScreens: {
         if (!root.surfaceMounted || !root.effectiveOverviewScreen)
             return [];
         return [root.effectiveOverviewScreen];
     }
+    readonly property var backdropScreens: {
+        if (!root.surfaceMounted)
+            return [];
+        return Quickshell.screens.filter(function (screen) {
+            return screen !== root.effectiveOverviewScreen;
+        });
+    }
+    readonly property var overviewKeyboardTargets: surfaceInstances.instances.length
+        ? surfaceInstances.instances[0].keyboardTargets
+        : []
     readonly property var filteredToplevels: {
         var revision = root.modelRevision;
         return root.toplevelsForScreen(root.keyboardScreenName);
@@ -280,7 +309,7 @@ Item {
             root.backgroundBlurReleasePhase = 0;
         root.closeSettings();
         root.filterText = "";
-        root.workspaceScope = "current";
+        root.workspaceScope = root.initialWorkspaceScope;
         root.dismissNotifyShell = false;
         if (root.surfaceMounted) {
             if (blurRestoreInFlight) {
@@ -446,6 +475,7 @@ Item {
         root.clearOverviewScreen();
         root.backgroundBlurReleasePhase = 0;
         root.finishDismiss();
+        root.scheduleHotCornerRearm();
     }
 
     function finishDismiss() {
@@ -675,6 +705,10 @@ Item {
             root.updatePluginSetting("hotCornerPosition", position);
     }
 
+    function setHotCornerAllDisplays(enabled) {
+        root.updatePluginSetting("hotCornerAllDisplays", enabled === true);
+    }
+
     function setHotCornerDelay(value) {
         var numeric = Number(value);
         if (!isFinite(numeric))
@@ -682,6 +716,20 @@ Item {
         var next = Math.max(0, Math.min(1000, Math.round(numeric)));
         if (next !== root.hotCornerDelay)
             root.updatePluginSetting("hotCornerDelay", next);
+        return next;
+    }
+
+    function setInitialWorkspaceScope(value) {
+        var next = String(value) === "current" ? "current" : "all";
+        if (next !== root.initialWorkspaceScope)
+            root.updatePluginSetting("initialWorkspaceScope", next);
+        return next;
+    }
+
+    function setWorkspaceLabelStyle(value) {
+        var next = String(value) === "slot" ? "slot" : "full";
+        if (next !== root.workspaceLabelStyle)
+            root.updatePluginSetting("workspaceLabelStyle", next);
         return next;
     }
 
@@ -717,7 +765,7 @@ Item {
     }
 
     function hotCornerHovered() {
-        var groups = [hotCornerInstances, surfaceInstances];
+        var groups = [hotCornerInstances, surfaceInstances, backdropInstances];
         for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) {
             var instances = groups[groupIndex].instances;
             for (var index = 0; index < instances.length; index++)
@@ -1051,8 +1099,12 @@ Item {
         root.sessionAspectRatios = ratios;
     }
 
+    function formatWorkspaceLabel(name) {
+        return WindowModel.formatWorkspaceLabel(name, root.workspaceLabelStyle);
+    }
+
     function workspaceName(top) {
-        return WindowModel.workspaceName(top);
+        return root.formatWorkspaceLabel(WindowModel.workspaceName(top));
     }
 
     function workspaceLabel(top) {
@@ -1083,7 +1135,7 @@ Item {
         var workspace = root.workspaceForScreen(screenName);
         if (!workspace)
             return "—";
-        return String(workspace.name || workspace.id || "—");
+        return root.formatWorkspaceLabel(String(workspace.name || workspace.id || "—"));
     }
 
     function workspaceScopeLabelForScreen(screenName) {
@@ -1783,6 +1835,12 @@ Item {
         function hotCornerDelay(value: real): string {
             return String(root.setHotCornerDelay(value));
         }
+        function hotCornerAllDisplays(mode: string): string {
+            if (mode !== "on" && mode !== "off")
+                return "expected on or off";
+            root.setHotCornerAllDisplays(mode === "on");
+            return mode;
+        }
         function moveCursorToWindow(mode: string): string {
             if (mode !== "on" && mode !== "off")
                 return "expected on or off";
@@ -1801,7 +1859,7 @@ Item {
         id: cornerTarget
         required property bool onTop
         required property bool onLeft
-        readonly property bool hovered: horizontalTarget.containsMouse || verticalTarget.containsMouse
+        readonly property bool hovered: enabled && (horizontalTarget.containsMouse || verticalTarget.containsMouse)
         signal entered()
         signal exited()
 
@@ -1853,18 +1911,15 @@ Item {
         }
     }
 
-    // These stay resident while the overview is open. The overview surface is
-    // created later on the same layer, so it stacks above the corner strip on
-    // its display and its own HotCornerTarget takes over there. Targets on the
-    // other displays remain disabled until the overview unmounts.
+    // Full-screen surfaces take over corner handling while Exposé is mounted.
     Variants {
         id: hotCornerInstances
-        model: root.hotCornerEnabled ? Quickshell.screens : []
+        model: root.hotCornerScreens
 
         PanelWindow { // qmllint disable uncreatable-type
             required property var modelData
             screen: modelData
-            visible: true
+            visible: !root.surfaceMounted
             anchors {
                 top: root.hotCornerOnTop
                 right: !root.hotCornerOnLeft
@@ -1899,7 +1954,6 @@ Item {
                 id: closedHotCorner
                 anchors.fill: parent
                 enabled: !root.surfaceMounted
-                    || String(modelData.name || "") === root.effectiveOverviewScreenName
                 onTop: root.hotCornerOnTop
                 onLeft: root.hotCornerOnLeft
                 onEntered: root.triggerHotCorner(String(modelData.name || ""))
@@ -1908,40 +1962,101 @@ Item {
         }
     }
 
+    component OverviewSurface: PanelWindow { // qmllint disable uncreatable-type
+        id: surface
+        required property var modelData
+        screen: modelData
+        visible: true
+        anchors {
+            top: true
+            right: true
+            bottom: true
+            left: true
+        }
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.namespace: "expose-window-overview"
+        WlrLayershell.layer: WlrLayer.Overlay
+        // Hyprland restricts pointer hit testing to exclusive surfaces too.
+        // Every backdrop must participate so clicks on other displays arrive.
+        WlrLayershell.keyboardFocus: root.opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        HyprlandWindow.opacity: root.motionProgress
+        BackgroundEffect.blurRegion: root.effectiveBackgroundBlur > 0 // qmllint disable missing-type
+                && !root.backgroundBlurFailed
+            ? backgroundBlurRegion
+            : null
+        readonly property bool hotCornerHovered: openHotCorner.hovered
+
+        Region {
+            id: backgroundBlurRegion
+            item: surface.contentItem
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "black"
+            opacity: root.effectiveBackgroundDim / 100
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            onClicked: {
+                if (surface.modelData === root.effectiveOverviewScreen
+                        && (root.previewIndex >= 0 || root.previewExitIndex >= 0))
+                    root.clearPreview();
+                else
+                    root.dismiss();
+            }
+            onWheel: function (wheel) { wheel.accepted = true; }
+        }
+
+        HotCornerTarget {
+            id: openHotCorner
+            width: root.hotCornerReach
+            height: root.hotCornerReach
+            x: root.hotCornerOnLeft ? 0 : parent.width - width
+            y: root.hotCornerOnTop ? 0 : parent.height - height
+            z: 100
+            enabled: root.surfaceMounted && root.hotCornerScreens.indexOf(surface.modelData) !== -1
+            onTop: root.hotCornerOnTop
+            onLeft: root.hotCornerOnLeft
+            onEntered: root.triggerHotCorner(String(surface.modelData.name || ""))
+            onExited: root.scheduleHotCornerRearm()
+        }
+    }
+
+    Variants {
+        id: backdropInstances
+        model: root.backdropScreens
+        OverviewSurface {
+            Item {
+                anchors.fill: parent
+                focus: true
+                Keys.forwardTo: root.opened ? root.overviewKeyboardTargets : []
+            }
+        }
+    }
+
     Variants {
         id: surfaceInstances
         model: root.mountedScreens
 
-        PanelWindow { // qmllint disable uncreatable-type
+        OverviewSurface {
             id: overviewWindow
-            required property var modelData
-            screen: modelData
-            visible: true
-            anchors {
-                top: true
-                right: true
-                bottom: true
-                left: true
-            }
-            color: "transparent"
-            exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.namespace: "expose-window-overview"
-            WlrLayershell.layer: WlrLayer.Overlay
-            HyprlandWindow.opacity: root.motionProgress
-            BackgroundEffect.blurRegion: root.effectiveBackgroundBlur > 0 // qmllint disable missing-type
-                    && !root.backgroundBlurFailed
-                ? backgroundBlurRegion
-                : null
-            readonly property bool hotCornerHovered: openHotCorner.hovered
             readonly property bool acceptsKeyboard: {
                 var wanted = root.effectiveOverviewScreenName;
                 if (wanted)
                     return String(modelData.name || "") === wanted;
                 return true;
             }
-            WlrLayershell.keyboardFocus: root.opened && acceptsKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
             property alias keyboardItem: keyCatcher
+            // Forwarded events don't bubble through the target's parents.
+            // Run overview shortcuts first, then the focused settings control.
+            readonly property var keyboardTargets: {
+                var focused = keyCatcher.Window.window ? keyCatcher.Window.window.activeFocusItem : null;
+                return focused && focused !== keyCatcher ? [keyCatcher, focused] : [keyCatcher];
+            }
             readonly property var screenToplevels: {
                 var revision = root.modelRevision;
                 return root.toplevelsForScreen(String(modelData.name || ""));
@@ -2000,17 +2115,6 @@ Item {
                     Qt.callLater(overviewWindow.focusSettingsCategory);
             }
 
-            Region {
-                id: backgroundBlurRegion
-                item: overviewWindow.contentItem
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: "black"
-                opacity: root.effectiveBackgroundDim / 100
-            }
-
             Item {
                 id: keyCatcher
                 anchors.fill: parent
@@ -2051,7 +2155,7 @@ Item {
                     if (root.settingsOpen
                             && !root.footerHideConfirmationOpen
                             && event.key >= Qt.Key_1
-                            && event.key <= Qt.Key_4) {
+                            && event.key <= Qt.Key_6) {
                         root.settingsCategoryIndex = event.key - Qt.Key_1;
                         Qt.callLater(overviewWindow.focusSettingsCategory);
                         event.accepted = true;
@@ -2060,16 +2164,6 @@ Item {
                     if (root.handleSettingsNavigation(event))
                         return;
                     root.handleKey(event, overviewArea.windowLayout);
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        if (root.previewIndex >= 0 || root.previewExitIndex >= 0)
-                            root.clearPreview();
-                        else
-                            root.dismiss();
-                    }
                 }
 
                 ColumnLayout {
@@ -2463,20 +2557,6 @@ Item {
                         }
                     }
                 }
-            }
-
-            HotCornerTarget {
-                id: openHotCorner
-                width: root.hotCornerReach
-                height: root.hotCornerReach
-                x: root.hotCornerOnLeft ? 0 : parent.width - width
-                y: root.hotCornerOnTop ? 0 : parent.height - height
-                z: 100
-                enabled: root.hotCornerEnabled
-                onTop: root.hotCornerOnTop
-                onLeft: root.hotCornerOnLeft
-                onEntered: root.triggerHotCorner()
-                onExited: root.scheduleHotCornerRearm()
             }
         }
     }

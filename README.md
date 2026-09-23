@@ -9,11 +9,11 @@ macOS-style Exposé for Omarchy: one key or a hot corner shows every open window
 - **Live previews.** Cards are real screencopy views, so videos keep playing and terminals keep scrolling. The Omarchy desktop behind the grid stays live too.
 - **Quick Look.** Space enlarges any preview and restores it again. Shift+Space does it in slow motion, like the classic macOS Easter egg.
 - **Search.** Just start typing to filter windows by title or application.
-- **Workspace scope.** Exposé opens with windows on the current workspace. Press Tab to show every window, and Tab again to return to the current workspace. Per-monitor mode evaluates the current workspace of the selected display.
+- **Workspace scope.** Press Tab to switch between every window and windows on the current workspace, and pick which of the two the overview opens with. Per-monitor mode evaluates the current workspace of the selected display.
 - **Workspace strip.** See each existing workspace above the window grid. Drag a window onto a workspace tile to move it without leaving Exposé, or onto **New workspace** to create one. Click any tile to switch to that workspace.
-- **Multi-monitor layouts.** The overview opens only on the focused display (or the display whose hot corner was used). Same overview shows every window there; per monitor keeps that display's own windows.
+- **Multi-monitor layouts.** Every display blurs and dims, with one grid on the focused display (or the display whose hot corner was used). All displays shows every window there; This display keeps that display's own windows.
 - **Built for Omarchy.** Runs inside Omarchy Shell, follows the active theme, and adds no packages, services, or daemons.
-- **Hot corner.** Toggle the overview by flinging the pointer into a corner (on by default, any corner, can be disabled).
+- **Hot corner.** Toggle the overview by flinging the pointer into a corner. Uses the outermost display by default, with an option for all displays.
 
 Everything is tunable from the built-in Settings panel and over IPC, and changes apply instantly.
 
@@ -90,23 +90,27 @@ Removal leaves nothing behind: Exposé keeps no files outside its plugin directo
 
 Clicking a card activates it; middle-clicking closes it. Activation moves the pointer to the chosen window by default; this is a setting, not a change to Hyprland's global cursor behavior.
 
-Drag a card to a workspace tile at the top to move that window, switch to its destination workspace, and close Exposé. Click a tile to switch without moving a window; clicking **New workspace** creates and switches to it. The strip shows existing workspaces plus one empty destination; the empty tile uses the first available positive workspace number. If moving the last window removes a numbered workspace, later numbered workspaces shift down to close the gap. A highlighted tile is a valid drop target. Drop outside the strip or press Escape to cancel. Pinned windows cannot be moved this way. In **Per monitor** mode, the strip lists that display's workspaces. In **Same overview** mode, it lists workspaces from all displays and labels each tile with its monitor.
+Drag a card to a workspace tile at the top to move that window, switch to its destination workspace, and close Exposé. Click a tile to switch without moving a window; clicking **New workspace** creates and switches to it. The strip shows existing workspaces plus one empty destination; the empty tile uses the first available positive workspace number. If moving the last window removes a numbered workspace, later numbered workspaces shift down to close the gap. A highlighted tile is a valid drop target. Drop outside the strip or press Escape to cancel. Pinned windows cannot be moved this way. In **This display** mode, the strip lists that display's workspaces. In **All displays** mode, it lists workspaces from all displays and labels each tile with its monitor.
 
-The overlay is created on one display only. With **Same overview**, its all-workspaces view shows every window. With **Per monitor**, it shows only windows that already belong to that display; the current workspace is the one active on that display.
+The window grid stays on the display where Exposé opened. Every display gets the same background blur and dim; clicking any backdrop dismisses Exposé without clicking through to the desktop. With **All displays**, the grid shows every window. With **This display**, it shows only windows that already belong to that display; when showing the current workspace, it uses the one active on that display.
+
+Hot corners default to the outermost display: left corners use the leftmost display, and right corners use the rightmost. If displays share that edge, the topmost or bottommost one wins according to the chosen corner. Enable **Hot corner → Use on all displays** to use the chosen corner on every display.
 
 ## Settings
 
-Open **Settings** from the footer while the overview is open. It is fully keyboard driven: 1-4 jump to a section, Up/Down move between controls, Left/Right adjust sliders and choices, Space or Enter flip toggles and press buttons, Escape closes. Changes apply immediately:
+Open **Settings** from the footer while the overview is open. It is fully keyboard driven: 1-6 jump to a section, Up/Down move between controls, Left/Right adjust sliders and choices, Space or Enter flip toggles and press buttons, Escape closes. Changes apply immediately. Settings are grouped into **Appearance**, **Windows**, **Window labels**, **Workspaces**, **Hot corner**, and **Motion**, with explanatory text beneath each control:
 
 - Opening animation: Original (default), Fade, Zoom, or Slide
-- Animation speed saved per mode, linked for in/out by default or expandable to separate timings
+- Animation duration saved per mode, linked for in/out by default or expandable to separate timings
 - Slide direction: left (default), right, up, or down. Splitting in/out splits both speed and direction
 - Background blur (0–20) and dim (0–90)
-- Preview placement: in-place or centered
+- Quick Look position: in-place or centered
+- Opens with: all workspaces (default) or the current workspace; Tab still switches either way
+- Workspace names: full (default) or slot only, which prints just the trailing slot of names like `<monitor description>:3` that per-monitor workspace plugins produce
 - Window footer style: floating, integrated, overlay, or centered
-- Multiple displays: Same overview (all windows together on the selected display) or Per monitor (only that display's windows)
+- Windows to include: All displays (windows from every display) or This display (only that display's windows)
 - Bottom text visibility. Hiding it requires confirmation and removes the Settings link
-- Hot corner on/off, position (disable the same corner in other hot-corner plugins to avoid overlap), and activation delay (0–1000 ms of pointer dwell before it fires; 0 is instant)
+- Hot corner on/off, position (disable the same corner in other hot-corner plugins to avoid overlap), All displays (off by default), and activation delay (0–1000 ms of pointer dwell before it fires; 0 is instant)
 - Move cursor to the activated window on/off
 
 Every reversible setting is also scriptable:
@@ -128,6 +132,7 @@ omarchy-shell expose windowFooterStyle floating  # floating | integrated | overl
 omarchy-shell expose multiMonitorMode mirrored   # mirrored | per-monitor
 omarchy-shell expose hotCorner on                # on | off
 omarchy-shell expose hotCornerPosition top-left  # top-left | top-right | bottom-left | bottom-right
+omarchy-shell expose hotCornerAllDisplays off    # off: outermost display (default) | on: every display
 omarchy-shell expose hotCornerDelay 0            # 0-1000 ms of dwell before it fires
 omarchy-shell expose moveCursorToWindow on       # on | off
 ```

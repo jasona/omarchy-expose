@@ -20,6 +20,7 @@ Item {
         when: windowShown
 
         function init() {
+            corner.enabled = true;
             mouseMove(root, 100, 100);
             root.effectiveHotCornerDelay = 500;
             entered.clear();
@@ -46,6 +47,15 @@ Item {
             wait(200);
             mouseMove(root, 100, 100);
             compare(exited.count, 1);
+            wait(600);
+            compare(entered.count, 0);
+        }
+
+        function test_disablingCancelsDwell() {
+            mouseMove(root, 20, 2);
+            wait(200);
+            corner.enabled = false;
+            compare(corner.hovered, false);
             wait(600);
             compare(entered.count, 0);
         }
