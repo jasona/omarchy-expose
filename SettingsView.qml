@@ -544,6 +544,8 @@ Item {
             return settingsView.availableFocusItems([
                 categoryButton,
                 previewPlacementChoices,
+                initialWorkspaceScopeChoices,
+                workspaceLabelStyleChoices,
                 windowFooterChoices,
                 movePointerToggle,
                 displayModeChoicesControl
