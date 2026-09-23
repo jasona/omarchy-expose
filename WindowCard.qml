@@ -65,6 +65,50 @@ Ui.BorderSurface {
     borderSpec: integratedFooter ? outlineSpec : Border.none()
     opacity: card.controller.previewIndex < 0 || previewed ? 1 : 0.28
 
+    // A press starts at most one workspace drag. Once the controller cancels
+    // it (Escape, closing, a settings change), later movement in the same
+    // press must not start another.
+    function pointerPressed(x, y) {
+        pointerArea.pressX = x;
+        pointerArea.pressY = y;
+        pointerArea.wasDrag = false;
+        pointerArea.dragActive = false;
+    }
+
+    function pointerMoved(x, y) {
+        if (!card.inLayout || !card.controller.workspaceDragAvailable)
+            return;
+        var point = pointerArea.mapToItem(card.dragHost, x, y);
+        if (!pointerArea.dragActive) {
+            var dx = x - pointerArea.pressX;
+            var dy = y - pointerArea.pressY;
+            if (dx * dx + dy * dy < Style.space(8) * Style.space(8)
+                    || card.controller.previewIndex >= 0)
+                return;
+            pointerArea.dragActive = true;
+            pointerArea.wasDrag = true;
+            card.controller.beginWindowDrag(card.modelData, card.dragHost, point.x, point.y);
+        } else if (card.controller.draggingTop === card.modelData) {
+            card.controller.updateWindowDrag(card.dragHost, point.x, point.y);
+        }
+    }
+
+    function pointerReleased(x, y) {
+        if (!pointerArea.dragActive)
+            return;
+        pointerArea.dragActive = false;
+        if (card.controller.draggingTop !== card.modelData)
+            return;
+        var point = pointerArea.mapToItem(card.dragHost, x, y);
+        card.controller.finishWindowDrag(card.dragHost, point.x, point.y);
+    }
+
+    function pointerCanceled() {
+        if (pointerArea.dragActive && card.controller.draggingTop === card.modelData)
+            card.controller.cancelWindowDrag();
+        pointerArea.dragActive = false;
+    }
+
     MouseArea {
         id: pointerArea
         anchors.fill: parent
@@ -96,43 +140,13 @@ Ui.BorderSurface {
 
         }
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-        onPressed: function(mouse) {
-            pressX = mouse.x;
-            pressY = mouse.y;
-            wasDrag = false;
-            dragActive = false;
-        }
+        onPressed: function(mouse) { card.pointerPressed(mouse.x, mouse.y); }
         onPositionChanged: function(mouse) {
-            if (!(mouse.buttons & Qt.LeftButton) || !card.inLayout
-                    || !card.controller.workspaceDragAvailable)
-                return;
-            if (!dragActive) {
-                var dx = mouse.x - pressX;
-                var dy = mouse.y - pressY;
-                if (dx * dx + dy * dy < Style.space(8) * Style.space(8)
-                        || card.controller.previewIndex >= 0)
-                    return;
-                dragActive = true;
-                wasDrag = true;
-            }
-            var point = pointerArea.mapToItem(card.dragHost, mouse.x, mouse.y);
-            if (card.controller.draggingTop !== card.modelData)
-                card.controller.beginWindowDrag(card.modelData, card.dragHost, point.x, point.y);
-            else
-                card.controller.updateWindowDrag(card.dragHost, point.x, point.y);
+            if (mouse.buttons & Qt.LeftButton)
+                card.pointerMoved(mouse.x, mouse.y);
         }
-        onReleased: function(mouse) {
-            if (!dragActive)
-                return;
-            var point = pointerArea.mapToItem(card.dragHost, mouse.x, mouse.y);
-            card.controller.finishWindowDrag(card.dragHost, point.x, point.y);
-            dragActive = false;
-        }
-        onCanceled: {
-            if (dragActive)
-                card.controller.cancelWindowDrag();
-            dragActive = false;
-        }
+        onReleased: function(mouse) { card.pointerReleased(mouse.x, mouse.y); }
+        onCanceled: card.pointerCanceled()
         onClicked: function(mouse) {
             if (wasDrag)
                 return;

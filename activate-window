@@ -52,9 +52,19 @@ if [[ -n $clients_json && -n $monitors_json ]]; then
           or $window.size[0] <= 0 or $window.size[1] <= 0
         then false
         else
+          # Monitor width and height are the unrotated mode in physical
+          # pixels; window geometry is logical. Convert each monitor to its
+          # logical box: swap for 90/270 degree transforms, divide by scale.
           ($monitors | map(select(.disabled != true
             and ([.x, .y, .width, .height] | all(.[]; type == "number"))
-            and .width > 0 and .height > 0))) as $active
+            and .width > 0 and .height > 0
+            and ((.scale // 1) | type == "number" and . > 0)
+            and ((.transform // 0) | type == "number"))
+            | (.scale // 1) as $scale
+            | ((.transform // 0) % 2 == 1) as $rotated
+            | {x, y,
+               width: ((if $rotated then .height else .width end) / $scale),
+               height: ((if $rotated then .width else .height end) / $scale)})) as $active
           | if ($active | length) == 0 then false
             else
               any($active[];

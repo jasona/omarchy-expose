@@ -28,6 +28,14 @@ ShellRoot {
         property bool workspaceDragEnabled: true
         readonly property bool workspaceDragAvailable: showWorkspaceStrip && workspaceDragEnabled
         property string afterWorkspaceMove: "follow"
+        property var draggingTop: null
+        property int dragBegins: 0
+        property int dragUpdates: 0
+        property int dragFinishes: 0
+        function beginWindowDrag(top, host, x, y) { draggingTop = top; dragBegins++; }
+        function updateWindowDrag(host, x, y) { dragUpdates++; }
+        function cancelWindowDrag() { draggingTop = null; }
+        function finishWindowDrag(host, x, y) { draggingTop = null; dragFinishes++; }
         property bool closeWorkspaceGaps: false
         property bool showNewWorkspaceTile: true
         property string multiMonitorMode: "mirrored"
@@ -162,8 +170,29 @@ ShellRoot {
         }
         settings.focusFirstSettingsControl();
     }
+    function checkCanceledDragStaysCanceled() {
+        require(card.inLayout, "drag test card is laid out");
+        card.pointerPressed(10, 10);
+        card.pointerMoved(12, 10);
+        require(controller.dragBegins === 0, "movement under the threshold does not drag");
+        card.pointerMoved(80, 10);
+        require(controller.dragBegins === 1 && controller.draggingTop === card.modelData, "movement past the threshold starts a drag");
+        card.pointerMoved(90, 10);
+        require(controller.dragUpdates === 1, "later movement updates the drag");
+        controller.cancelWindowDrag();
+        card.pointerMoved(120, 10);
+        card.pointerMoved(160, 10);
+        require(controller.dragBegins === 1 && controller.draggingTop === null, "canceled drag does not restart while the button is held");
+        card.pointerReleased(160, 10);
+        require(controller.dragFinishes === 0, "releasing a canceled drag does not drop the window");
+        card.pointerPressed(10, 10);
+        card.pointerMoved(80, 10);
+        require(controller.dragBegins === 2, "a new press can drag again");
+        card.pointerReleased(80, 10);
+        require(controller.dragFinishes === 1, "releasing an active drag finishes it");
+    }
     function finish() {
-        console.log("PASS: real shell theme tokens, views, compositor window borders, gradients, per-side widths, alpha, zero borders, live reload, settings layout and focus navigation");
+        console.log("PASS: real shell theme tokens, views, compositor window borders, gradients, per-side widths, alpha, zero borders, live reload, settings layout and focus navigation, workspace drag cancellation");
         Qt.quit();
     }
     function require(condition, message) {
@@ -248,6 +277,7 @@ ShellRoot {
                 }
                 test.phase++;
             } else if (test.phase === 23) {
+                checkCanceledDragStaysCanceled();
                 finish();
             }
         }
