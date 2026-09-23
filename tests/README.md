@@ -11,8 +11,21 @@ source directory as its argument to check another host version.
 
 `./tests/check-hot-corner-runtime` extracts the actual inline `HotCornerTarget`
 into an offscreen Qt Quick test. It checks immediate activation, one-shot dwell,
-exit cancellation, and transitions through the overlapping strips in both
+exit/disable cancellation, and transitions through the overlapping strips in both
 directions. It runs as part of `./validate`.
+
+`tst_screen_layout.qml` covers outermost-display selection with mixed logical
+sizes, negative coordinates, stacked displays, layout changes, and removal.
+
+For live multi-display checks, use a second physical or headless Hyprland output:
+
+- Open on either display: both backdrops should blur/dim, with only one grid.
+- Cross to the other display: search, Escape, and settings keyboard controls must
+  still reach the grid. A backdrop click must dismiss without reaching an app.
+- Toggle **Hot corner → All displays** and change corner positions; check that
+  only the eligible displays activate Exposé, including after rearranging them.
+- Add a display while open, then remove the grid's display: the grid should move
+  to a remaining display and every other display should retain its backdrop.
 
 The runtime check covers saved settings, 203 rapid edits, nested animation
 settings, preservation of unknown fields and other entries, atomic file watching,

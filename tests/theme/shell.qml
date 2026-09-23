@@ -17,6 +17,7 @@ ShellRoot {
         property int effectiveBackgroundBlur: 4
         property int effectiveBackgroundDim: 6
         property bool hotCornerEnabled: false
+        property bool hotCornerAllDisplays: false
         property string hotCornerPosition: "top-left"
         property int hotCornerDelayPreview: -1
         property int hotCornerDelay: 0
