@@ -1,7 +1,7 @@
 .pragma library
 
-// ScreenInfo geometry is already in logical pixels, including scale/rotation.
-function hotCornerScreens(screens, position, allDisplays) {
+// Hyprland supplies desktop positions; screen sizes are in logical pixels.
+function hotCornerScreens(screens, monitors, position, allDisplays) {
     var onLeft = position.indexOf("-left") !== -1;
     var onTop = position.indexOf("top-") === 0;
     var result = [];
@@ -16,8 +16,17 @@ function hotCornerScreens(screens, position, allDisplays) {
             result.push(screen);
             continue;
         }
-        var edge = onLeft ? screen.x : screen.x + screen.width;
-        var vertical = onTop ? screen.y : screen.y + screen.height;
+        var monitor = null;
+        for (var j = 0; j < monitors.length; j++) {
+            if (monitors[j] && monitors[j].name === screen.name) {
+                monitor = monitors[j];
+                break;
+            }
+        }
+        if (!monitor)
+            continue;
+        var edge = onLeft ? monitor.x : monitor.x + screen.width;
+        var vertical = onTop ? monitor.y : monitor.y + screen.height;
         if (!selected
                 || (onLeft ? edge < selectedEdge : edge > selectedEdge)
                 || (edge === selectedEdge && (onTop ? vertical < selectedVertical : vertical > selectedVertical))
