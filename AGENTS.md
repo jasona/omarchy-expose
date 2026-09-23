@@ -11,6 +11,11 @@
 - This requirement applies to contributors other than the repository owner.
   Do not guess a model version; check the tool's model setting before opening
   the PR.
+- If the tool exposes a reasoning level or effort setting, include it for each
+  listed model in the PR description, for example
+  `Reasoning levels: GPT-6 Astra: high`. If the tool does not expose it, say
+  `Reasoning levels: Unavailable (not exposed by tool)`. Do not guess. An
+  unavailable or missing reasoning level must not block the PR.
 
 ## Release workflow
 
